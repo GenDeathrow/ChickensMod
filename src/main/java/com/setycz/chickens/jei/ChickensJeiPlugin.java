@@ -13,6 +13,7 @@ import com.setycz.chickens.jei.laying.LayingRecipeCategory;
 import com.setycz.chickens.jei.laying.LayingRecipeHandler;
 import com.setycz.chickens.jei.laying.LayingRecipeWrapper;
 import mezz.jei.api.*;
+import mezz.jei.api.ingredients.IModIngredientRegistration;
 import net.minecraft.item.ItemStack;
 
 import java.util.ArrayList;
@@ -23,20 +24,20 @@ import java.util.List;
  */
 @JEIPlugin
 public class ChickensJeiPlugin implements IModPlugin {
-    private IJeiHelpers jeiHelpers;
 
     @Override
-    public void onJeiHelpersAvailable(IJeiHelpers jeiHelpers) {
-        this.jeiHelpers = jeiHelpers;
+    public void registerItemSubtypes(ISubtypeRegistry subtypeRegistry) {
+
     }
 
     @Override
-    public void onItemRegistryAvailable(IItemRegistry itemRegistry) {
+    public void registerIngredients(IModIngredientRegistration registry) {
 
     }
 
     @Override
     public void register(IModRegistry registry) {
+        IJeiHelpers jeiHelpers = registry.getJeiHelpers();
         registry.addRecipeCategories(
                 new LayingRecipeCategory(jeiHelpers.getGuiHelper()),
                 new BreedingRecipeCategory(jeiHelpers.getGuiHelper()),
@@ -50,11 +51,6 @@ public class ChickensJeiPlugin implements IModPlugin {
         registry.addRecipes(getLayingRecipes());
         registry.addRecipes(getBreedingRecipes());
         registry.addRecipes(getDropRecipes());
-    }
-
-    @Override
-    public void onRecipeRegistryAvailable(IRecipeRegistry recipeRegistry) {
-
     }
 
     @Override

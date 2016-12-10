@@ -1,7 +1,6 @@
 package com.setycz.chickens;
 
 import net.minecraft.init.Items;
-import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
@@ -100,11 +99,11 @@ public class ChickensRegistryItem {
     }
 
     public boolean isDye() {
-        return layItem.getItem() == Items.dye;
+        return layItem.getItem() == Items.DYE;
     }
 
     public boolean isDye(int dyeMetadata) {
-        return layItem.getItem() == Items.dye && layItem.getMetadata() == dyeMetadata;
+        return layItem.getItem() == Items.DYE && layItem.getMetadata() == dyeMetadata;
     }
 
     public int getDyeMetadata() {
@@ -120,11 +119,11 @@ public class ChickensRegistryItem {
     }
 
     public int getMinLayTime() {
-        return (int)Math.max(6000*getTier()*layCoefficient, 1.0f);
+        return (int) Math.max(6000 * getTier() * layCoefficient, 1.0f);
     }
 
     public int getMaxLayTime() {
-        return 2*getMinLayTime();
+        return 2 * getMinLayTime();
     }
 
     public SpawnType getSpawnType() {

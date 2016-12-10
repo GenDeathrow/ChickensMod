@@ -3,7 +3,7 @@ package com.setycz.chickens.henhouse;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.ICrafting;
+import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
@@ -24,7 +24,7 @@ public class ContainerHenhouse extends Container {
         this.addSlotToContainer(new Slot(tileEntityHenhouse, TileEntityHenhouse.dirtSlotIndex, 25, 55));
 
         for (int row = 0; row < 3; row++) {
-            for (int column=0; column <3; column++) {
+            for (int column = 0; column < 3; column++) {
                 this.addSlotToContainer(new Slot(
                         tileEntityHenhouse,
                         TileEntityHenhouse.firstItemSlotIndex + (row * 3) + column,
@@ -87,19 +87,13 @@ public class ContainerHenhouse extends Container {
     public void detectAndSendChanges() {
         super.detectAndSendChanges();
 
-        for (ICrafting crafter : crafters) {
+        for (IContainerListener crafter : listeners) {
             if (energy != tileEntityHenhouse.getField(0)) {
                 crafter.sendProgressBarUpdate(this, 0, tileEntityHenhouse.getField(0));
             }
         }
 
         energy = tileEntityHenhouse.getField(0);
-    }
-
-    @Override
-    public void onCraftGuiOpened(ICrafting listener) {
-        super.onCraftGuiOpened(listener);
-        listener.sendAllWindowProperties(this, tileEntityHenhouse);
     }
 
     @Override

@@ -6,16 +6,19 @@ import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.datasync.DataParameter;
+import net.minecraft.network.datasync.DataSerializers;
+import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumParticleTypes;
-import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.World;
 
 /**
  * Created by setyc on 13.02.2016.
  */
 public class EntityColoredEgg extends EntityEgg {
-    public static final int TYPE_ID = 19;
+    private static final DataParameter<Integer> CHICKEN_TYPE = EntityDataManager.createKey(EntityColoredEgg.class, DataSerializers.VARINT);
     public static final String TYPE_NBT = "Type";
 
     public EntityColoredEgg(World worldIn, EntityLivingBase throwerIn) {
@@ -23,23 +26,24 @@ public class EntityColoredEgg extends EntityEgg {
     }
 
     public void setChickenType(int type) {
-        this.dataWatcher.updateObject(TYPE_ID, type);
+        this.dataManager.set(CHICKEN_TYPE, type);
     }
 
     private int getChickenType() {
-        return this.dataWatcher.getWatchableObjectInt(TYPE_ID);
+        return this.dataManager.get(CHICKEN_TYPE);
     }
 
     @Override
     protected void entityInit() {
         super.entityInit();
-        this.dataWatcher.addObject(TYPE_ID, 0);
+        this.dataManager.register(CHICKEN_TYPE, 0);
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound tagCompund) {
+    public NBTTagCompound writeToNBT(NBTTagCompound tagCompund) {
         super.writeToNBT(tagCompund);
         tagCompund.setInteger(TYPE_NBT, getChickenType());
+        return tagCompund;
     }
 
     @Override
@@ -49,10 +53,9 @@ public class EntityColoredEgg extends EntityEgg {
     }
 
     @Override
-    protected void onImpact(MovingObjectPosition p_70184_1_) {
-
-        if (p_70184_1_.entityHit != null) {
-            p_70184_1_.entityHit.attackEntityFrom(DamageSource.causeThrownDamage(this, this.getThrower()), 0.0F);
+    protected void onImpact(RayTraceResult result) {
+        if (result.entityHit != null) {
+            result.entityHit.attackEntityFrom(DamageSource.causeThrownDamage(this, this.getThrower()), 0.0F);
         }
 
         if (!this.worldObj.isRemote && this.rand.nextInt(8) == 0) {
@@ -71,10 +74,8 @@ public class EntityColoredEgg extends EntityEgg {
             }
         }
 
-        double d0 = 0.08D;
-
         for (int k = 0; k < 8; ++k) {
-            this.worldObj.spawnParticle(EnumParticleTypes.ITEM_CRACK, this.posX, this.posY, this.posZ, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, new int[]{Item.getIdFromItem(Items.egg)});
+            this.worldObj.spawnParticle(EnumParticleTypes.ITEM_CRACK, this.posX, this.posY, this.posZ, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, Item.getIdFromItem(Items.EGG));
         }
 
         if (!this.worldObj.isRemote) {

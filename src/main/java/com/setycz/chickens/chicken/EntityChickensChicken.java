@@ -8,16 +8,21 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.IEntityLivingData;
 import net.minecraft.entity.passive.EntityChicken;
+import net.minecraft.init.Biomes;
 import net.minecraft.init.Items;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.BlockPos;
+import net.minecraft.network.datasync.DataParameter;
+import net.minecraft.network.datasync.DataSerializers;
+import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.StatCollector;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.text.translation.I18n;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraft.world.biome.Biome;
 
 import java.util.List;
 
@@ -25,8 +30,7 @@ import java.util.List;
  * Created by setyc on 12.02.2016.
  */
 public class EntityChickensChicken extends EntityChicken {
-
-    public static final int TYPE_ID = 19;
+    private static final DataParameter<Integer> CHICKEN_TYPE = EntityDataManager.createKey(EntityChickensChicken.class, DataSerializers.VARINT);
     public static final String TYPE_NBT = "Type";
 
     public EntityChickensChicken(World worldIn) {
@@ -53,13 +57,13 @@ public class EntityChickensChicken extends EntityChicken {
         }
 
         ChickensRegistryItem chickenDescription = getChickenDescription();
-        return StatCollector.translateToLocal("entity." + chickenDescription.getEntityName() + ".name");
+        return I18n.translateToLocal("entity." + chickenDescription.getEntityName() + ".name");
     }
 
     @Override
     public EntityChicken createChild(EntityAgeable ageable) {
         ChickensRegistryItem chickenDescription = getChickenDescription();
-        ChickensRegistryItem mateChickenDescription = ((EntityChickensChicken)ageable).getChickenDescription();
+        ChickensRegistryItem mateChickenDescription = ((EntityChickensChicken) ageable).getChickenDescription();
 
         ChickensRegistryItem childToBeBorn = ChickensRegistry.getRandomChild(chickenDescription, mateChickenDescription);
         if (childToBeBorn == null) {
@@ -77,10 +81,10 @@ public class EntityChickensChicken extends EntityChicken {
             ChickensRegistryItem chickenDescription = getChickenDescription();
             ItemStack itemToLay = chickenDescription.createLayItem();
 
-            itemToLay = TileEntityHenhouse.pushItemStack(itemToLay, worldObj, new Vec3(posX, posY, posZ));
+            itemToLay = TileEntityHenhouse.pushItemStack(itemToLay, worldObj, new Vec3d(posX, posY, posZ));
 
             if (itemToLay != null) {
-                this.playSound("mob.chicken.plop", 1.0F, (this.rand.nextFloat() - this.rand.nextFloat()) * 0.2F + 1.0F);
+                this.playSound(SoundEvents.ENTITY_CHICKEN_EGG, 1.0F, (this.rand.nextFloat() - this.rand.nextFloat()) * 0.2F + 1.0F);
                 this.entityDropItem(chickenDescription.createLayItem(), 0);
             }
 
@@ -92,15 +96,15 @@ public class EntityChickensChicken extends EntityChicken {
     private void resetTimeUntilNextEgg() {
         ChickensRegistryItem chickenDescription = getChickenDescription();
         this.timeUntilNextEgg = (chickenDescription.getMinLayTime()
-                + rand.nextInt(chickenDescription.getMaxLayTime()-chickenDescription.getMinLayTime())) * 2;
+                + rand.nextInt(chickenDescription.getMaxLayTime() - chickenDescription.getMinLayTime())) * 2;
     }
 
     @Override
     public boolean getCanSpawnHere() {
         boolean anyInNether = ChickensRegistry.isAnyIn(SpawnType.HELL);
         boolean anyInOverworld = ChickensRegistry.isAnyIn(SpawnType.NORMAL) || ChickensRegistry.isAnyIn(SpawnType.SNOW);
-        BiomeGenBase biome = worldObj.getBiomeGenForCoords(getPosition());
-        return anyInNether && biome == BiomeGenBase.hell || anyInOverworld && super.getCanSpawnHere();
+        Biome biome = worldObj.getBiomeForCoordsBody(getPosition());
+        return anyInNether && biome == Biomes.HELL || anyInOverworld && super.getCanSpawnHere();
     }
 
     @Override
@@ -112,11 +116,13 @@ public class EntityChickensChicken extends EntityChicken {
         } else {
             SpawnType spawnType = getSpawnType();
             List<ChickensRegistryItem> possibleChickens = ChickensRegistry.getPossibleChickensToSpawn(spawnType);
-            ChickensRegistryItem chickenToSpawn = possibleChickens.get(rand.nextInt(possibleChickens.size()));
+            if (possibleChickens.size() > 0) {
+                ChickensRegistryItem chickenToSpawn = possibleChickens.get(rand.nextInt(possibleChickens.size()));
 
-            int type = chickenToSpawn.getId();
-            setChickenType(type);
-            livingData = new GroupData(type);
+                int type = chickenToSpawn.getId();
+                setChickenType(type);
+                livingData = new GroupData(type);
+            }
         }
 
         if (rand.nextInt(5) == 0) {
@@ -127,7 +133,7 @@ public class EntityChickensChicken extends EntityChicken {
     }
 
     private SpawnType getSpawnType() {
-        BiomeGenBase biome = worldObj.getBiomeGenForCoords(getPosition());
+        Biome biome = worldObj.getBiomeForCoordsBody(getPosition());
         return ChickensRegistry.getSpawnType(biome);
     }
 
@@ -150,57 +156,60 @@ public class EntityChickensChicken extends EntityChicken {
     }
 
     private void setChickenTypeInternal(int type) {
-        this.dataWatcher.updateObject(TYPE_ID, type);
+        this.dataManager.set(CHICKEN_TYPE, type);
     }
 
     private int getChickenTypeInternal() {
-        return this.dataWatcher.getWatchableObjectInt(TYPE_ID);
+        return this.dataManager.get(CHICKEN_TYPE);
     }
 
     @Override
     protected void entityInit() {
         super.entityInit();
-        this.dataWatcher.addObject(TYPE_ID, 0);
+        dataManager.register(CHICKEN_TYPE, 0);
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound tagCompund) {
-        super.writeToNBT(tagCompund);
+    public void writeEntityToNBT(NBTTagCompound tagCompund) {
+        super.writeEntityToNBT(tagCompund);
         tagCompund.setInteger(TYPE_NBT, getChickenTypeInternal());
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound tagCompund) {
-        super.readFromNBT(tagCompund);
+    public void readEntityFromNBT(NBTTagCompound tagCompund) {
+        super.readEntityFromNBT(tagCompund);
         setChickenTypeInternal(tagCompund.getInteger(TYPE_NBT));
     }
 
     @Override
-    public int getTalkInterval()
-    {
+    public int getTalkInterval() {
         return 20 * 60;
     }
 
     @Override
     protected void playStepSound(BlockPos pos, Block blockIn) {
-    	if(this.rand.nextFloat() > 0.1) {
-    		return;
-    	}
-    	super.playStepSound(pos,  blockIn);
+        if (this.rand.nextFloat() > 0.1) {
+            return;
+        }
+        super.playStepSound(pos, blockIn);
     }
 
     @Override
-    protected void dropFewItems(boolean p_70628_1_, int p_70628_2_) {
+    protected ResourceLocation getLootTable() {
+        return null;
+    }
+
+    @Override
+    protected void dropFewItems(boolean wasRecentlyHit, int lootingModifier) {
         ItemStack itemsToDrop = getChickenDescription().createDropItem();
-        int count = 1 + rand.nextInt(1 + p_70628_2_);
+        int count = 1 + rand.nextInt(1 + lootingModifier);
         itemsToDrop.stackSize *= count;
         entityDropItem(itemsToDrop, 0);
 
         if (this.isBurning()) {
-            this.dropItem(Items.cooked_chicken, 1);
-        }
-        else {
-            this.dropItem(Items.chicken, 1);
+            this.dropItem(Items.COOKED_CHICKEN, 1);
+        } else {
+            this.dropItem(Items.CHICKEN, 1);
         }
     }
 }

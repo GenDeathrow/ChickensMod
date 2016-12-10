@@ -12,7 +12,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.*;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.relauncher.Side;
@@ -39,7 +45,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     private final ItemStack[] slots = new ItemStack[11];
     private int energy = 0;
 
-    public static ItemStack pushItemStack(ItemStack itemToLay, World worldObj, Vec3 pos) {
+    public static ItemStack pushItemStack(ItemStack itemToLay, World worldObj, Vec3d pos) {
         List<TileEntityHenhouse> henhouses = findHenhouses(worldObj, pos, 4 + HENHOUSE_RADIUS + FENCE_TRESHOLD);
         for (TileEntityHenhouse henhouse : henhouses) {
             itemToLay = henhouse.pushItemStack(itemToLay);
@@ -50,7 +56,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         return itemToLay;
     }
 
-    private static List<TileEntityHenhouse> findHenhouses(World worldObj, Vec3 pos, double radius) {
+    private static List<TileEntityHenhouse> findHenhouses(World worldObj, Vec3d pos, double radius) {
         int firstChunkX = MathHelper.floor_double((pos.xCoord - radius - World.MAX_ENTITY_RADIUS) / 16.0D);
         int lastChunkX = MathHelper.floor_double((pos.xCoord + radius + World.MAX_ENTITY_RADIUS) / 16.0D);
         int firstChunkY = MathHelper.floor_double((pos.zCoord - radius - World.MAX_ENTITY_RADIUS) / 16.0D);
@@ -63,7 +69,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
                 Chunk chunk = worldObj.getChunkFromChunkCoords(chunkX, chunkY);
                 for (TileEntity tileEntity : chunk.getTileEntityMap().values()) {
                     if (tileEntity instanceof TileEntityHenhouse) {
-                        Vec3 tileEntityPos = new Vec3(tileEntity.getPos()).addVector(HENHOUSE_RADIUS, HENHOUSE_RADIUS, HENHOUSE_RADIUS);
+                        Vec3d tileEntityPos = new Vec3d(tileEntity.getPos()).addVector(HENHOUSE_RADIUS, HENHOUSE_RADIUS, HENHOUSE_RADIUS);
                         boolean inRage = testRange(pos, tileEntityPos, radius);
                         if (inRage) {
                             double distance = pos.distanceTo(tileEntityPos);
@@ -76,7 +82,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         return result;
     }
 
-    private static boolean testRange(Vec3 pos1, Vec3 pos2, double range) {
+    private static boolean testRange(Vec3d pos1, Vec3d pos2, double range) {
         return Math.abs(pos1.xCoord - pos2.xCoord) <= range &&
                 Math.abs(pos1.yCoord - pos2.yCoord) <= range &&
                 Math.abs(pos1.zCoord - pos2.zCoord) <= range;
@@ -98,7 +104,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         ItemStack rest = stack.copy();
 
         int capacity = getEffectiveCapacity();
-        if (capacity <= 0){
+        if (capacity <= 0) {
             return rest;
         }
 
@@ -111,8 +117,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
                 if (slots[slotIndex] == null) {
                     slots[slotIndex] = rest.splitStack(willAdd);
-                }
-                else {
+                } else {
                     slots[slotIndex].stackSize += willAdd;
                     rest.stackSize -= willAdd;
                 }
@@ -130,6 +135,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     private void consumeEnergy(int amount) {
         while (amount > 0) {
             if (energy == 0) {
+                assert slots[hayBaleSlotIndex] != null;
                 slots[hayBaleSlotIndex].stackSize--;
                 if (slots[hayBaleSlotIndex].stackSize <= 0) {
                     slots[hayBaleSlotIndex] = null;
@@ -143,9 +149,8 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
             if (energy <= 0) {
                 if (slots[dirtSlotIndex] == null) {
-                    slots[dirtSlotIndex] = new ItemStack(Blocks.dirt, 1);
-                }
-                else {
+                    slots[dirtSlotIndex] = new ItemStack(Blocks.DIRT, 1);
+                } else {
                     slots[dirtSlotIndex].stackSize++;
                 }
             }
@@ -173,7 +178,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         int potential = energy;
 
         ItemStack hayBaleStack = slots[hayBaleSlotIndex];
-        if (hayBaleStack != null && hayBaleStack.getItem() == Item.getItemFromBlock(Blocks.hay_block)) {
+        if (hayBaleStack != null && hayBaleStack.getItem() == Item.getItemFromBlock(Blocks.HAY_BLOCK)) {
             potential += hayBaleStack.stackSize * hayBaleEnergy;
         }
 
@@ -185,14 +190,16 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         if (dirtStack == null) {
             return getInventoryStackLimit() * hayBaleEnergy;
         }
-        if (dirtStack.getItem() != Item.getItemFromBlock(Blocks.dirt)) {
+        if (dirtStack.getItem() != Item.getItemFromBlock(Blocks.DIRT)) {
             return 0;
         }
         return (getInventoryStackLimit() - dirtStack.stackSize) * hayBaleEnergy;
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound compound) {
+    public NBTTagCompound writeToNBT(NBTTagCompound compound) {
+        super.writeToNBT(compound);
+
         if (hasCustomName()) {
             compound.setString("customName", customName);
         }
@@ -213,7 +220,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
         compound.setInteger("energy", energy);
 
-        super.writeToNBT(compound);
+        return compound;
     }
 
     @Override
@@ -226,7 +233,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
         Arrays.fill(slots, null);
         NBTTagList items = compound.getTagList("items", 10);
-        for (int itemIndex=0; itemIndex<items.tagCount(); itemIndex++) {
+        for (int itemIndex = 0; itemIndex < items.tagCount(); itemIndex++) {
             NBTTagCompound item = items.getCompoundTagAt(itemIndex);
             int slotIndex = item.getInteger("slot");
             ItemStack itemStack = ItemStack.loadItemStackFromNBT(item);
@@ -294,8 +301,9 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     @Override
     public boolean isItemValidForSlot(int index, ItemStack stack) {
         if (index == hayBaleSlotIndex) {
-            return stack.getItem() == Item.getItemFromBlock(Blocks.hay_block);
+            return stack.getItem() == Item.getItemFromBlock(Blocks.HAY_BLOCK);
         }
+        //noinspection RedundantIfStatement
         if (index == dirtSlotIndex) {
             return false;
         }
@@ -344,8 +352,8 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     }
 
     @Override
-    public IChatComponent getDisplayName() {
-        return hasCustomName() ? new ChatComponentText(getName()) : new ChatComponentTranslation(getName());
+    public ITextComponent getDisplayName() {
+        return hasCustomName() ? new TextComponentString(getName()) : new TextComponentTranslation(getName());
     }
 
     public void setCustomName(String customName) {
@@ -374,12 +382,12 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
                 int itemSlotCount = lastItemSlotIndex - firstItemSlotIndex + 1;
                 int[] itemSlots = new int[itemSlotCount + 1];
                 itemSlots[0] = dirtSlotIndex;
-                for (int resultIndex=0; resultIndex<itemSlotCount; resultIndex++) {
+                for (int resultIndex = 0; resultIndex < itemSlotCount; resultIndex++) {
                     itemSlots[resultIndex + 1] = firstItemSlotIndex + resultIndex;
                 }
                 return itemSlots;
             case UP:
-                return new int[] { hayBaleSlotIndex };
+                return new int[]{hayBaleSlotIndex};
             default:
                 return new int[0];
         }

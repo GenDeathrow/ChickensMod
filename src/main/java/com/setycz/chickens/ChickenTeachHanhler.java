@@ -5,7 +5,7 @@ import net.minecraft.entity.passive.EntityChicken;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
-import net.minecraftforge.event.entity.player.EntityInteractEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 /**
@@ -14,16 +14,16 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 public class ChickenTeachHanhler {
 
     @SubscribeEvent
-    public void handleInteraction(EntityInteractEvent event) {
-        ItemStack item = event.entityPlayer.getCurrentEquippedItem();
-        if (item == null || item.getItem() != Items.book) {
+    public void handleInteraction(PlayerInteractEvent.EntityInteract event) {
+        ItemStack item = event.getEntityPlayer().getHeldItem(event.getHand());
+        if (item == null || item.getItem() != Items.BOOK) {
             return;
         }
-        if (!(event.target.getClass() == EntityChicken.class)) {
+        if (!(event.getTarget().getClass() == EntityChicken.class)) {
             return;
         }
 
-        World worldObj = event.entityPlayer.worldObj;
+        World worldObj = event.getEntityPlayer().worldObj;
         if (worldObj.isRemote) {
             return;
         }
@@ -33,7 +33,7 @@ public class ChickenTeachHanhler {
             return;
         }
 
-        EntityChicken chicken = (EntityChicken) event.target;
+        EntityChicken chicken = (EntityChicken) event.getTarget();
         EntityChickensChicken smartChicken = convertToSmart(chicken, worldObj, smartChickenDescription);
 
         worldObj.removeEntity(chicken);
