@@ -18,38 +18,46 @@ import net.minecraft.world.World;
  * Created by setyc on 13.02.2016.
  */
 public class EntityColoredEgg extends EntityEgg {
-    private static final DataParameter<Integer> CHICKEN_TYPE = EntityDataManager.createKey(EntityColoredEgg.class, DataSerializers.VARINT);
+    private static final DataParameter<String> CHICKEN_TYPE = EntityDataManager.createKey(EntityColoredEgg.class, DataSerializers.STRING);
     public static final String TYPE_NBT = "Type";
+
+    public EntityColoredEgg(World worldIn) {
+        super(worldIn);
+    }
 
     public EntityColoredEgg(World worldIn, EntityLivingBase throwerIn) {
         super(worldIn, throwerIn);
     }
 
-    public void setChickenType(int type) {
+    public EntityColoredEgg(World worldIn, double x, double y, double z) {
+        super(worldIn, x, y, z);
+    }
+
+    public void setChickenType(String type) {
         this.dataManager.set(CHICKEN_TYPE, type);
     }
 
-    private int getChickenType() {
+    private String getChickenType() {
         return this.dataManager.get(CHICKEN_TYPE);
     }
 
     @Override
     protected void entityInit() {
         super.entityInit();
-        this.dataManager.register(CHICKEN_TYPE, 0);
+        this.dataManager.register(CHICKEN_TYPE, "");
     }
 
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound tagCompund) {
-        super.writeToNBT(tagCompund);
-        tagCompund.setInteger(TYPE_NBT, getChickenType());
-        return tagCompund;
+    public NBTTagCompound writeToNBT(NBTTagCompound tagCompound) {
+        super.writeToNBT(tagCompound);
+        tagCompound.setString(TYPE_NBT, getChickenType());
+        return tagCompound;
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound tagCompund) {
-        super.readFromNBT(tagCompund);
-        setChickenType(tagCompund.getInteger(TYPE_NBT));
+    public void readFromNBT(NBTTagCompound tagCompound) {
+        super.readFromNBT(tagCompound);
+        setChickenType(tagCompound.getString(TYPE_NBT));
     }
 
     @Override
@@ -58,7 +66,7 @@ public class EntityColoredEgg extends EntityEgg {
             result.entityHit.attackEntityFrom(DamageSource.causeThrownDamage(this, this.getThrower()), 0.0F);
         }
 
-        if (!this.worldObj.isRemote && this.rand.nextInt(8) == 0) {
+        if (!this.world.isRemote && this.rand.nextInt(8) == 0) {
             int i = 1;
 
             if (this.rand.nextInt(32) == 0) {
@@ -66,19 +74,19 @@ public class EntityColoredEgg extends EntityEgg {
             }
 
             for (int j = 0; j < i; ++j) {
-                EntityChickensChicken entitychicken = new EntityChickensChicken(this.worldObj);
-                entitychicken.setChickenType(getChickenType());
-                entitychicken.setGrowingAge(-24000);
-                entitychicken.setLocationAndAngles(this.posX, this.posY, this.posZ, this.rotationYaw, 0.0F);
-                this.worldObj.spawnEntityInWorld(entitychicken);
+                EntityChickensChicken entityChicken = new EntityChickensChicken(this.world);
+                entityChicken.setChickenType(getChickenType());
+                entityChicken.setGrowingAge(-24000);
+                entityChicken.setLocationAndAngles(this.posX, this.posY, this.posZ, this.rotationYaw, 0.0F);
+                this.world.spawnEntity(entityChicken);
             }
         }
 
         for (int k = 0; k < 8; ++k) {
-            this.worldObj.spawnParticle(EnumParticleTypes.ITEM_CRACK, this.posX, this.posY, this.posZ, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, Item.getIdFromItem(Items.EGG));
+            this.world.spawnParticle(EnumParticleTypes.ITEM_CRACK, this.posX, this.posY, this.posZ, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, ((double) this.rand.nextFloat() - 0.5D) * 0.08D, Item.getIdFromItem(Items.EGG));
         }
 
-        if (!this.worldObj.isRemote) {
+        if (!this.world.isRemote) {
             this.setDead();
         }
     }

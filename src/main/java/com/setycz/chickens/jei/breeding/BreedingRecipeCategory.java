@@ -11,6 +11,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by setyc on 21.02.2016.
@@ -20,6 +22,7 @@ public class BreedingRecipeCategory implements IRecipeCategory {
     private final String title;
     private final IDrawableStatic background;
     private final IDrawableAnimated arrow;
+    private final IDrawableStatic icon;
 
     public BreedingRecipeCategory(IGuiHelper guiHelper) {
         title = Translator.translateToLocal("gui.breeding");
@@ -27,9 +30,11 @@ public class BreedingRecipeCategory implements IRecipeCategory {
         ResourceLocation location = new ResourceLocation(ChickensMod.MODID, "textures/gui/breeding.png");
         background = guiHelper.createDrawable(location, 0, 0, 82, 54);
 
-
         IDrawableStatic arrowDrawable = guiHelper.createDrawable(location, 82, 0, 7, 7);
         arrow = guiHelper.createAnimatedDrawable(arrowDrawable, 200, IDrawableAnimated.StartDirection.BOTTOM, false);
+
+        ResourceLocation iconLocation = new ResourceLocation(ChickensMod.MODID, "textures/gui/breeding_icon.png");
+        icon = guiHelper.createDrawable(iconLocation, 0, 0, 16, 16);
     }
 
     @Override
@@ -50,7 +55,7 @@ public class BreedingRecipeCategory implements IRecipeCategory {
     @Nullable
     @Override
     public IDrawable getIcon() {
-        return null;
+        return icon;
     }
 
     @Override
@@ -59,15 +64,8 @@ public class BreedingRecipeCategory implements IRecipeCategory {
     }
 
     @Override
-    @Deprecated
-    public void drawAnimations(Minecraft minecraft) {
-
-    }
-
-    @Override
-    @Deprecated
-    public void setRecipe(IRecipeLayout recipeLayout, IRecipeWrapper recipeWrapper) {
-
+    public List<String> getTooltipStrings(int mouseX, int mouseY) {
+        return Collections.emptyList();
     }
 
     @Override

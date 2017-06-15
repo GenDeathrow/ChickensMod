@@ -5,6 +5,7 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -40,12 +41,14 @@ public class GuiHenhouse extends GuiContainer {
 
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        String henouseName = tileEntityHenhouse.getDisplayName().getUnformattedText();
-        this.fontRendererObj.drawString(
-                henouseName,
-                xSize / 2 - fontRendererObj.getStringWidth(henouseName) / 2, 6,
+        ITextComponent henhouseDisplayName = tileEntityHenhouse.getDisplayName();
+        assert henhouseDisplayName != null;
+        String henhouseName = henhouseDisplayName.getUnformattedText();
+        this.fontRenderer.drawString(
+                henhouseName,
+                xSize / 2 - fontRenderer.getStringWidth(henhouseName) / 2, 6,
                 4210752);
-        this.fontRendererObj.drawString(
+        this.fontRenderer.drawString(
                 playerInv.getDisplayName().getUnformattedText(),
                 8, ySize - 96 + 2,
                 4210752);

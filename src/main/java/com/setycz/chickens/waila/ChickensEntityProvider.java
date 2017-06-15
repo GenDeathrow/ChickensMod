@@ -1,5 +1,6 @@
 package com.setycz.chickens.waila;
 
+import com.setycz.chickens.ChickensMod;
 import com.setycz.chickens.chicken.EntityChickensChicken;
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaEntityAccessor;
@@ -16,7 +17,6 @@ import java.util.List;
 /**
  * Created by setyc on 20.02.2016.
  */
-// TODO: Waila not ported yet
 public class ChickensEntityProvider implements IWailaEntityProvider {
 
     private static final ChickensEntityProvider INSTANCE = new ChickensEntityProvider();
@@ -38,7 +38,24 @@ public class ChickensEntityProvider implements IWailaEntityProvider {
     @Override
     public List<String> getWailaBody(Entity entity, List<String> currenttip, IWailaEntityAccessor accessor, IWailaConfigHandler config) {
         EntityChickensChicken chicken = (EntityChickensChicken) entity;
+
         currenttip.add(I18n.translateToLocalFormatted("entity.ChickensChicken.tier", chicken.getTier()));
+
+        if (chicken.getStatsAnalyzed() || ChickensMod.instance.getAlwaysShowStats()) {
+            currenttip.add(I18n.translateToLocalFormatted("entity.ChickensChicken.growth", chicken.getGrowth()));
+            currenttip.add(I18n.translateToLocalFormatted("entity.ChickensChicken.gain", chicken.getGain()));
+            currenttip.add(I18n.translateToLocalFormatted("entity.ChickensChicken.strength", chicken.getStrength()));
+        }
+
+        if (!chicken.isChild()) {
+            int layProgress = chicken.getLayProgress();
+            if (layProgress <= 0) {
+                currenttip.add(I18n.translateToLocal("entity.ChickensChicken.nextEggSoon"));
+            } else {
+                currenttip.add(I18n.translateToLocalFormatted("entity.ChickensChicken.layProgress", layProgress));
+            }
+        }
+
         return currenttip;
     }
 

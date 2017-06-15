@@ -1,7 +1,10 @@
 package com.setycz.chickens;
 
 import net.minecraft.init.Biomes;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
+
+import javax.annotation.Nullable;
 
 import java.util.*;
 
@@ -9,28 +12,43 @@ import java.util.*;
  * Created by setyc on 12.02.2016.
  */
 public final class ChickensRegistry {
-    private static final Map<Integer, ChickensRegistryItem> items = new HashMap<Integer, ChickensRegistryItem>();
-    public static final int SMART_CHICKEN_ID = 50;
-    private static Random rand = new Random();
+    
+	private static final Map<ResourceLocation, ChickensRegistryItem> items = new HashMap<ResourceLocation, ChickensRegistryItem>();
+    private static final Map<String, ChickensRegistryItem> STRING_TO_ITEM = new HashMap<String, ChickensRegistryItem>();
+    
+    public static final ResourceLocation SMART_CHICKEN_ID = new ResourceLocation(ChickensMod.MODID ,"SmartChicken");
+    private static final Random rand = new Random();
 
     public static void register(ChickensRegistryItem entity) {
         validate(entity);
-        items.put(entity.getId(), entity);
+        items.put(entity.getRegistryName(), entity);
+        STRING_TO_ITEM.put(entity.getRegistryName().toString(), entity);
+        
+        //System.out.println(entity.getRegistryName());
     }
 
     private static void validate(ChickensRegistryItem entity) {
         for (ChickensRegistryItem item : items.values()) {
-            if (entity.getId() == item.getId()) {
-                throw new RuntimeException("Duplicated ID!");
+            if (entity.getRegistryName().toString().compareToIgnoreCase(item.getRegistryName().toString()) == 0) {
+                throw new RuntimeException("Duplicated ID [" + entity.getRegistryName().toString() + "] of [" + entity.getEntityName() + "] with [" + item.getRegistryName().toString() + "] of [" + item.getEntityName() + "]!");
             }
             if (entity.getEntityName().compareToIgnoreCase(item.getEntityName()) == 0) {
-                throw new RuntimeException("Duplicated name!");
+                throw new RuntimeException("Duplicated name [" + entity.getEntityName() + "] of [" + entity.getRegistryName().toString() + "] with [" + item.getRegistryName().toString()  + "]!");
             }
         }
     }
 
-    public static ChickensRegistryItem getByType(int type) {
+//    public static ChickensRegistryItem getByType(int type) {
+//        return items.get(type);
+//    }
+    
+    public static ChickensRegistryItem getByResourceLocation(ResourceLocation type) {
         return items.get(type);
+    }
+    
+    public static ChickensRegistryItem getByRegistryName(String type)
+    {
+    	return STRING_TO_ITEM.get(type);
     }
 
     public static Collection<ChickensRegistryItem> getItems() {
@@ -43,11 +61,7 @@ public final class ChickensRegistry {
         return result;
     }
 
-    public static Collection<ChickensRegistryItem> getAllItems() {
-        return items.values();
-    }
-
-    public static List<ChickensRegistryItem> getChildren(ChickensRegistryItem parent1, ChickensRegistryItem parent2) {
+    private static List<ChickensRegistryItem> getChildren(ChickensRegistryItem parent1, ChickensRegistryItem parent2) {
         List<ChickensRegistryItem> result = new ArrayList<ChickensRegistryItem>();
         if (parent1.isEnabled()) {
             result.add(parent1);
@@ -63,6 +77,7 @@ public final class ChickensRegistry {
         return result;
     }
 
+    @Nullable
     public static ChickensRegistryItem findDyeChicken(int dyeMetadata) {
         for (ChickensRegistryItem chicken : items.values()) {
             if (chicken.isDye(dyeMetadata)) {
@@ -99,6 +114,7 @@ public final class ChickensRegistry {
             return 0;
         }
 
+        //noinspection ConstantConditions
         List<ChickensRegistryItem> possibleChildren = getChildren(child.getParent1(), child.getParent2());
 
         int maxChance = getMaxChance(possibleChildren);
@@ -107,6 +123,7 @@ public final class ChickensRegistry {
         return ((maxChance - child.getTier()) * 100.0f) / maxDiceValue;
     }
 
+    @Nullable
     public static ChickensRegistryItem getRandomChild(ChickensRegistryItem parent1, ChickensRegistryItem parent2) {
         List<ChickensRegistryItem> possibleChildren = getChildren(parent1, parent2);
         if (possibleChildren.size() == 0) {
@@ -120,6 +137,7 @@ public final class ChickensRegistry {
         return getChickenToBeBorn(possibleChildren, maxChance, diceValue);
     }
 
+    @Nullable
     private static ChickensRegistryItem getChickenToBeBorn(List<ChickensRegistryItem> possibleChildren, int maxChance, int diceValue) {
         int currentVale = 0;
         for (ChickensRegistryItem child : possibleChildren) {
@@ -157,6 +175,7 @@ public final class ChickensRegistry {
         return false;
     }
 
+    @Nullable
     public static ChickensRegistryItem getSmartChicken() {
         return items.get(SMART_CHICKEN_ID);
     }

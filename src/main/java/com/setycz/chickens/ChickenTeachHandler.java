@@ -1,6 +1,7 @@
 package com.setycz.chickens;
 
 import com.setycz.chickens.chicken.EntityChickensChicken;
+
 import net.minecraft.entity.passive.EntityChicken;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -11,19 +12,19 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 /**
  * Created by setyc on 21.03.2016.
  */
-public class ChickenTeachHanhler {
+public class ChickenTeachHandler {
 
     @SubscribeEvent
     public void handleInteraction(PlayerInteractEvent.EntityInteract event) {
         ItemStack item = event.getEntityPlayer().getHeldItem(event.getHand());
-        if (item == null || item.getItem() != Items.BOOK) {
+        if (item.isEmpty() || item.getItem() != Items.BOOK) {
             return;
         }
         if (!(event.getTarget().getClass() == EntityChicken.class)) {
             return;
         }
 
-        World worldObj = event.getEntityPlayer().worldObj;
+        World worldObj = event.getEntityPlayer().world;
         if (worldObj.isRemote) {
             return;
         }
@@ -37,7 +38,7 @@ public class ChickenTeachHanhler {
         EntityChickensChicken smartChicken = convertToSmart(chicken, worldObj, smartChickenDescription);
 
         worldObj.removeEntity(chicken);
-        worldObj.spawnEntityInWorld(smartChicken);
+        worldObj.spawnEntity(smartChicken);
         smartChicken.spawnExplosionParticle();
 
         event.setCanceled(true);
@@ -47,7 +48,9 @@ public class ChickenTeachHanhler {
         EntityChickensChicken smartChicken = new EntityChickensChicken(worldObj);
         smartChicken.setPositionAndRotation(chicken.posX, chicken.posY, chicken.posZ, chicken.rotationYaw, chicken.rotationPitch);
         smartChicken.onInitialSpawn(worldObj.getDifficultyForLocation(chicken.getPosition()), null);
-        smartChicken.setChickenType(smartChickenDescription.getId());
+        //smartChicken.setChickenType(smartChickenDescription.getId());
+        smartChicken.setChickenType(ChickensRegistry.SMART_CHICKEN_ID.toString());
+        
         if (chicken.hasCustomName()) {
             smartChicken.setCustomNameTag(chicken.getCustomNameTag());
         }

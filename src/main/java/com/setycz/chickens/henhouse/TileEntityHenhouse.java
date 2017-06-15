@@ -13,7 +13,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
@@ -24,6 +24,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,16 +38,17 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     public static final int hayBaleSlotIndex = 0;
     public static final int dirtSlotIndex = 1;
     public static final int firstItemSlotIndex = 2;
-    public static final int lastItemSlotIndex = 10;
-    public static final double HENHOUSE_RADIUS = 0.5;
-    public static final double FENCE_TRESHOLD = 0.5;
+    private static final int lastItemSlotIndex = 10;
+    private static final double HENHOUSE_RADIUS = 0.5;
+    private static final double FENCE_THRESHOLD = 0.5;
 
     private String customName;
-    private final ItemStack[] slots = new ItemStack[11];
+    private final NonNullList<ItemStack> slots = NonNullList.withSize(11, ItemStack.EMPTY);
     private int energy = 0;
 
+    @Nullable
     public static ItemStack pushItemStack(ItemStack itemToLay, World worldObj, Vec3d pos) {
-        List<TileEntityHenhouse> henhouses = findHenhouses(worldObj, pos, 4 + HENHOUSE_RADIUS + FENCE_TRESHOLD);
+        List<TileEntityHenhouse> henhouses = findHenhouses(worldObj, pos, 4 + HENHOUSE_RADIUS + FENCE_THRESHOLD);
         for (TileEntityHenhouse henhouse : henhouses) {
             itemToLay = henhouse.pushItemStack(itemToLay);
             if (itemToLay == null) {
@@ -57,10 +59,10 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     }
 
     private static List<TileEntityHenhouse> findHenhouses(World worldObj, Vec3d pos, double radius) {
-        int firstChunkX = MathHelper.floor_double((pos.xCoord - radius - World.MAX_ENTITY_RADIUS) / 16.0D);
-        int lastChunkX = MathHelper.floor_double((pos.xCoord + radius + World.MAX_ENTITY_RADIUS) / 16.0D);
-        int firstChunkY = MathHelper.floor_double((pos.zCoord - radius - World.MAX_ENTITY_RADIUS) / 16.0D);
-        int lastChunkY = MathHelper.floor_double((pos.zCoord + radius + World.MAX_ENTITY_RADIUS) / 16.0D);
+        int firstChunkX = MathHelper.floor((pos.xCoord - radius - World.MAX_ENTITY_RADIUS) / 16.0D);
+        int lastChunkX = MathHelper.floor((pos.xCoord + radius + World.MAX_ENTITY_RADIUS) / 16.0D);
+        int firstChunkY = MathHelper.floor((pos.zCoord - radius - World.MAX_ENTITY_RADIUS) / 16.0D);
+        int lastChunkY = MathHelper.floor((pos.zCoord + radius + World.MAX_ENTITY_RADIUS) / 16.0D);
 
         List<Double> distances = new ArrayList<Double>();
         List<TileEntityHenhouse> result = new ArrayList<TileEntityHenhouse>();
@@ -100,7 +102,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         henhouses.add(henhouse);
     }
 
-    public ItemStack pushItemStack(ItemStack stack) {
+    private ItemStack pushItemStack(ItemStack stack) {
         ItemStack rest = stack.copy();
 
         int capacity = getEffectiveCapacity();
@@ -109,21 +111,21 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         }
 
         for (int slotIndex = firstItemSlotIndex; slotIndex <= lastItemSlotIndex; slotIndex++) {
-            int canAdd = canAdd(slots[slotIndex], rest);
+            int canAdd = canAdd(slots.get(slotIndex), rest);
             int willAdd = Math.min(canAdd, capacity);
             if (willAdd > 0) {
                 consumeEnergy(willAdd);
                 capacity -= willAdd;
 
-                if (slots[slotIndex] == null) {
-                    slots[slotIndex] = rest.splitStack(willAdd);
+                if (slots.get(slotIndex).isEmpty()) {
+                    slots.set(slotIndex, rest.splitStack(willAdd));
                 } else {
-                    slots[slotIndex].stackSize += willAdd;
-                    rest.stackSize -= willAdd;
+                    slots.get(slotIndex).grow(willAdd);
+                    rest.shrink(willAdd);
                 }
 
-                if (rest.stackSize <= 0) {
-                    return null;
+                if (rest.getCount() <= 0) {
+                    return ItemStack.EMPTY;
                 }
             }
         }
@@ -135,10 +137,10 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     private void consumeEnergy(int amount) {
         while (amount > 0) {
             if (energy == 0) {
-                assert slots[hayBaleSlotIndex] != null;
-                slots[hayBaleSlotIndex].stackSize--;
-                if (slots[hayBaleSlotIndex].stackSize <= 0) {
-                    slots[hayBaleSlotIndex] = null;
+                assert !slots.get(hayBaleSlotIndex).isEmpty();
+                slots.get(hayBaleSlotIndex).shrink(1);
+                if (slots.get(hayBaleSlotIndex).getCount() <= 0) {
+                    slots.set(hayBaleSlotIndex, ItemStack.EMPTY);
                 }
                 energy += hayBaleEnergy;
             }
@@ -148,26 +150,26 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
             amount -= consumed;
 
             if (energy <= 0) {
-                if (slots[dirtSlotIndex] == null) {
-                    slots[dirtSlotIndex] = new ItemStack(Blocks.DIRT, 1);
+                if (slots.get(dirtSlotIndex).isEmpty()) {
+                    slots.set(dirtSlotIndex, new ItemStack(Blocks.DIRT, 1));
                 } else {
-                    slots[dirtSlotIndex].stackSize++;
+                    slots.get(dirtSlotIndex).grow(1);
                 }
             }
         }
     }
 
-    private int canAdd(ItemStack slotStack, ItemStack inputStack) {
+    private int canAdd(@Nullable ItemStack slotStack, ItemStack inputStack) {
         if (slotStack == null) {
-            return Math.min(getInventoryStackLimit(), inputStack.stackSize);
+            return Math.min(getInventoryStackLimit(), inputStack.getCount());
         }
         if (!slotStack.isItemEqual(inputStack)) {
             return 0;
         }
-        if (slotStack.stackSize >= getInventoryStackLimit()) {
+        if (slotStack.getCount() >= getInventoryStackLimit()) {
             return 0;
         }
-        return Math.min(inputStack.stackSize, getInventoryStackLimit() - slotStack.stackSize);
+        return Math.min(inputStack.getCount(), getInventoryStackLimit() - slotStack.getCount());
     }
 
     private int getEffectiveCapacity() {
@@ -177,23 +179,23 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     private int getInputCapacity() {
         int potential = energy;
 
-        ItemStack hayBaleStack = slots[hayBaleSlotIndex];
-        if (hayBaleStack != null && hayBaleStack.getItem() == Item.getItemFromBlock(Blocks.HAY_BLOCK)) {
-            potential += hayBaleStack.stackSize * hayBaleEnergy;
+        ItemStack hayBaleStack = slots.get(hayBaleSlotIndex);
+        if (!hayBaleStack.isEmpty() && hayBaleStack.getItem() == Item.getItemFromBlock(Blocks.HAY_BLOCK)) {
+            potential += hayBaleStack.getCount() * hayBaleEnergy;
         }
 
         return potential;
     }
 
     private int getOutputCapacity() {
-        ItemStack dirtStack = slots[dirtSlotIndex];
-        if (dirtStack == null) {
+        ItemStack dirtStack = slots.get(dirtSlotIndex);
+        if (dirtStack.isEmpty()) {
             return getInventoryStackLimit() * hayBaleEnergy;
         }
         if (dirtStack.getItem() != Item.getItemFromBlock(Blocks.DIRT)) {
             return 0;
         }
-        return (getInventoryStackLimit() - dirtStack.stackSize) * hayBaleEnergy;
+        return (getInventoryStackLimit() - dirtStack.getCount()) * hayBaleEnergy;
     }
 
     @Override
@@ -207,9 +209,9 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         compound.setInteger("energy", energy);
 
         NBTTagList items = new NBTTagList();
-        for (int slotIndex = 0; slotIndex < slots.length; slotIndex++) {
-            ItemStack itemStack = slots[slotIndex];
-            if (itemStack != null) {
+        for (int slotIndex = 0; slotIndex < slots.size(); slotIndex++) {
+            ItemStack itemStack = slots.get(slotIndex);
+            if (!itemStack.isEmpty()) {
                 NBTTagCompound item = new NBTTagCompound();
                 item.setInteger("slot", slotIndex);
                 itemStack.writeToNBT(item);
@@ -231,13 +233,14 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
         energy = compound.getInteger("energy");
 
-        Arrays.fill(slots, null);
+        clear();
+
         NBTTagList items = compound.getTagList("items", 10);
         for (int itemIndex = 0; itemIndex < items.tagCount(); itemIndex++) {
             NBTTagCompound item = items.getCompoundTagAt(itemIndex);
             int slotIndex = item.getInteger("slot");
-            ItemStack itemStack = ItemStack.loadItemStackFromNBT(item);
-            slots[slotIndex] = itemStack;
+            ItemStack itemStack = new ItemStack(item);
+            slots.set(slotIndex, itemStack);
         }
 
         energy = compound.getInteger("energy");
@@ -245,22 +248,23 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
     @Override
     public int getSizeInventory() {
-        return slots.length;
+        return slots.size();
     }
 
     @Override
     public ItemStack getStackInSlot(int index) {
-        return slots[index];
+        return slots.get(index);
     }
 
     @Override
     public ItemStack decrStackSize(int index, int count) {
-        ItemStack stack = slots[index];
-        if (stack == null) {
-            return null;
+        ItemStack stack = slots.get(index);
+
+        if (stack.isEmpty()) {
+            return ItemStack.EMPTY;
         }
-        if (count >= stack.stackSize) {
-            slots[index] = null;
+        if (count >= stack.getCount()) {
+            slots.set(index, ItemStack.EMPTY);
             return stack;
         }
         return stack.splitStack(count);
@@ -268,14 +272,14 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
     @Override
     public ItemStack removeStackFromSlot(int index) {
-        ItemStack stack = slots[index];
-        slots[index] = null;
+        ItemStack stack = slots.get(index);
+        slots.set(index, ItemStack.EMPTY);
         return stack;
     }
 
     @Override
     public void setInventorySlotContents(int index, ItemStack stack) {
-        slots[index] = stack;
+        slots.set(index, stack);
     }
 
     @Override
@@ -284,7 +288,7 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     }
 
     @Override
-    public boolean isUseableByPlayer(EntityPlayer player) {
+    public boolean isUsableByPlayer(EntityPlayer player) {
         return true;
     }
 
@@ -307,6 +311,17 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
         if (index == dirtSlotIndex) {
             return false;
         }
+        return true;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        for (ItemStack stack : slots) {
+            if (stack != null && !stack.isEmpty()) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -336,8 +351,8 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
 
     @Override
     public void clear() {
-        for (int slotIndex = 0; slotIndex < slots.length; slotIndex++) {
-            slots[slotIndex] = null;
+        for (int slotIndex = 0; slotIndex < slots.size(); slotIndex++) {
+            slots.set(slotIndex, ItemStack.EMPTY);
         }
     }
 
@@ -361,13 +376,13 @@ public class TileEntityHenhouse extends TileEntity implements ISidedInventory, I
     }
 
     @Override
-    public Container createContainer(InventoryPlayer inventoryplayer, World world, BlockPos pos) {
+    public Container createContainer(InventoryPlayer inventoryplayer) {
         return new ContainerHenhouse(inventoryplayer, this);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
-    public GuiContainer createGui(InventoryPlayer inventoryplayer, World world, BlockPos pos) {
+    public GuiContainer createGui(InventoryPlayer inventoryplayer) {
         return new GuiHenhouse(inventoryplayer, this);
     }
 

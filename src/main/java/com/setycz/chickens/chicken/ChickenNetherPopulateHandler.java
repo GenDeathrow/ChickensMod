@@ -12,10 +12,19 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import javax.annotation.Nullable;
+
 /**
  * Created by setyc on 05.03.2016.
  */
 public class ChickenNetherPopulateHandler {
+    private final float chanceMultiplier;
+
+    public ChickenNetherPopulateHandler(float chanceMultiplier) {
+
+        this.chanceMultiplier = chanceMultiplier;
+    }
+
     @SubscribeEvent
     public void populateChunk(PopulateChunkEvent.Populate event) {
         BlockPos chunkCentrePos = new BlockPos(event.getChunkX() * 16 + 8, 0, event.getChunkZ() * 16 + 8);
@@ -24,7 +33,7 @@ public class ChickenNetherPopulateHandler {
             return;
         }
 
-        if (event.getWorld().rand.nextFloat() < biome.getSpawningChance()) {
+        if (event.getWorld().rand.nextFloat() < biome.getSpawningChance() * chanceMultiplier) {
 
             BlockPos basePosition = getRandomChunkPosition(event.getWorld(), event.getChunkX(), event.getChunkZ());
             BlockPos spawnPos = findFloor(event.getWorld(), basePosition);
@@ -45,19 +54,20 @@ public class ChickenNetherPopulateHandler {
         return spawnPos;
     }
 
-    private IEntityLivingData spawn(World world, IEntityLivingData livingData, BlockPos spawnPos) {
+    @Nullable
+    private IEntityLivingData spawn(World world, @Nullable IEntityLivingData livingData, BlockPos spawnPos) {
         if (WorldEntitySpawner.canCreatureTypeSpawnAtLocation(EntitySpawnPlacementRegistry.getPlacementForEntity(EntityChickensChicken.class), world, spawnPos)) {
             EntityChickensChicken entity = new EntityChickensChicken(world);
             entity.setLocationAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, world.rand.nextFloat() * 360.0F, 0.0F);
             livingData = entity.onInitialSpawn(world.getDifficultyForLocation(new BlockPos(entity)), livingData);
             if (entity.isNotColliding()) {
-                world.spawnEntityInWorld(entity);
+                world.spawnEntity(entity);
             }
         }
         return livingData;
     }
 
-    protected static BlockPos getRandomChunkPosition(World worldIn, int x, int z) {
+    private static BlockPos getRandomChunkPosition(World worldIn, int x, int z) {
         Chunk chunk = worldIn.getChunkFromChunkCoords(x, z);
         int i = x * 16 + worldIn.rand.nextInt(16);
         int j = z * 16 + worldIn.rand.nextInt(16);

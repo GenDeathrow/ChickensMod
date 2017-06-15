@@ -1,17 +1,24 @@
 package com.setycz.chickens.jei.drop;
 
+import java.util.Collections;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import com.setycz.chickens.ChickensMod;
+
 import mezz.jei.api.IGuiHelper;
-import mezz.jei.api.gui.*;
+import mezz.jei.api.gui.IDrawable;
+import mezz.jei.api.gui.IDrawableAnimated;
+import mezz.jei.api.gui.IDrawableStatic;
+import mezz.jei.api.gui.IGuiItemStackGroup;
+import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.ingredients.IIngredients;
 import mezz.jei.api.recipe.IRecipeCategory;
 import mezz.jei.api.recipe.IRecipeWrapper;
 import mezz.jei.util.Translator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Created by setyc on 21.02.2016.
@@ -22,6 +29,7 @@ public class DropRecipeCategory implements IRecipeCategory {
     private final IDrawableStatic background;
     private final IDrawableAnimated arrow;
     private final String title;
+    private final IDrawableStatic icon;
 
     public DropRecipeCategory(IGuiHelper guiHelper) {
         title = Translator.translateToLocal("gui.drops");
@@ -31,6 +39,9 @@ public class DropRecipeCategory implements IRecipeCategory {
 
         IDrawableStatic arrowDrawable = guiHelper.createDrawable(location, 82, 0, 13, 10);
         arrow = guiHelper.createAnimatedDrawable(arrowDrawable, 200, IDrawableAnimated.StartDirection.LEFT, false);
+
+        ResourceLocation iconLocation = new ResourceLocation(ChickensMod.MODID, "textures/gui/drops_icon.png");
+        icon = guiHelper.createDrawable(iconLocation, 0, 0, 16, 16);
     }
 
     @Override
@@ -51,7 +62,7 @@ public class DropRecipeCategory implements IRecipeCategory {
     @Nullable
     @Override
     public IDrawable getIcon() {
-        return null;
+        return icon;
     }
 
     @Override
@@ -60,13 +71,8 @@ public class DropRecipeCategory implements IRecipeCategory {
     }
 
     @Override
-    @Deprecated
-    public void drawAnimations(Minecraft minecraft) {
-    }
-
-    @Override
-    @Deprecated
-    public void setRecipe(@Nonnull IRecipeLayout recipeLayout, @Nonnull IRecipeWrapper recipeWrapper) {
+    public List<String> getTooltipStrings(int mouseX, int mouseY) {
+        return Collections.emptyList();
     }
 
     @Override
